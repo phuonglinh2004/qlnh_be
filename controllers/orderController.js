@@ -2,23 +2,14 @@
 // const { generateVietQRUrl } = require('../utils/vietqr');
 // const bcrypt = require('bcrypt');
 //
-// // ==========================================
 // // HẰNG SỐ & HÀM DÙNG CHUNG
-// // ==========================================
-// const POINT_VALUE = 10000;        // 1 điểm giảm 10.000đ
-// const POINT_EARN_STEP = 100000;   // mỗi 100.000đ tiền món được cộng 1 điểm
+// const POINT_VALUE = 10000;
+// const POINT_EARN_STEP = 100000;
 // const PAYMENT_METHODS = ['cash', 'vietqr'];
 // const ITEM_STATUSES = ['pending', 'cooking', 'served', 'cancelled'];
 //
-// // Lỗi do người dùng gửi sai dữ liệu -> trả về 400 thay vì 500
 // const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
 //
-// /**
-//  * Gọi món: mỗi bàn chỉ có MỘT đơn đang mở.
-//  * Bàn đã có đơn chưa thanh toán -> cộng món vào đơn đó, chưa có -> tạo đơn mới.
-//  * Giá luôn lấy từ DB (không tin giá từ client). Món chọn "phần lớn" (size: 'large')
-//  * dùng large_price nếu món có cột này.
-//  */
 // async function placeOrder(connection, { table_id, customer_id, items }) {
 //     if (!table_id || !Array.isArray(items) || items.length === 0) {
 //         throw badRequest('Thiếu bàn hoặc danh sách món');
@@ -65,7 +56,6 @@
 //         newItemIds.push(inserted.insertId);
 //     }
 //
-//     // Tính lại tổng tiền món của đơn (không tính món đã hủy)
 //     await connection.query(
 //         `UPDATE orders SET total_amount = (
 //             SELECT COALESCE(SUM(item_price * quantity), 0) FROM order_items
@@ -79,7 +69,6 @@
 //     return { orderId, newItemIds, total: orderRow.total_amount };
 // }
 //
-// // Báo cho màn hình bếp. Lỗi ở bước này không làm hỏng đơn đã lưu.
 // async function emitNewOrder(req, connection, { orderId, tableId, newItemIds, total }) {
 //     try {
 //         const [tableInfo] = await connection.query('SELECT table_number FROM tables WHERE table_id = ?', [tableId]);
@@ -97,10 +86,7 @@
 //     }
 // }
 //
-// // ==========================================
 // // 1. GỌI MÓN
-// // ==========================================
-// // Dành cho nhân viên
 // exports.createOrder = async (req, res) => {
 //     const { table_id, items } = req.body;
 //     const connection = await db.getConnection();
@@ -119,7 +105,6 @@
 //     }
 // };
 //
-// // Dành cho khách tự gọi
 // exports.createPublicOrder = async (req, res) => {
 //     const { table_id, items, customer_id } = req.body;
 //     const connection = await db.getConnection();
@@ -138,9 +123,7 @@
 //     }
 // };
 //
-// // ==========================================
 // // 2. MÃ QR THANH TOÁN
-// // ==========================================
 // exports.getPaymentQR = async (req, res) => {
 //     try {
 //         const [order] = await db.query('SELECT total_amount FROM orders WHERE order_id = ?', [req.params.orderId]);
@@ -153,9 +136,7 @@
 //     }
 // };
 //
-// // ==========================================
 // // 3. THỰC ĐƠN
-// // ==========================================
 // const MENU_QUERY = `
 //     SELECT m.*, c.category_name
 //     FROM menu_items m
@@ -183,9 +164,7 @@
 //     }
 // };
 //
-// // ==========================================
 // // MODULE KDS (BẾP)
-// // ==========================================
 // exports.getKitchenOrders = async (req, res) => {
 //     try {
 //         const query = `
@@ -225,9 +204,7 @@
 //     }
 // };
 //
-// // ==========================================
-// // MODULE THANH TOÁN CƠ BẢN (bản cũ, giữ để tương thích)
-// // ==========================================
+// // MODULE THANH TOÁN CƠ BẢN
 // exports.getTableBill = async (req, res) => {
 //     const { tableId } = req.params;
 //     try {
@@ -277,10 +254,7 @@
 //     }
 // };
 //
-// // ==========================================
 // // MODULE THU NGÂN (BILLING)
-// // ==========================================
-// // Danh sách bàn + tạm tính (cộng mọi đơn chưa thanh toán, bỏ món đã hủy)
 // exports.getBillingTables = async (req, res) => {
 //     try {
 //         const query = `
@@ -302,7 +276,6 @@
 //     }
 // };
 //
-// // Chi tiết hóa đơn của bàn: gộp mọi đơn chưa thanh toán
 // exports.getTableBillingDetails = async (req, res) => {
 //     const { tableId } = req.params;
 //     try {
@@ -330,7 +303,6 @@
 //     }
 // };
 //
-// // Thanh toán: backend tự tính lại tiền (tiền món + VAT từng món - điểm), không tin số từ frontend
 // exports.checkoutBilling = async (req, res) => {
 //     const { table_id, payment_method, points_used } = req.body;
 //     if (!table_id) return res.status(400).json({ error: 'Thiếu mã bàn' });
@@ -349,7 +321,6 @@
 //         );
 //         if (orders.length === 0) throw badRequest('Không tìm thấy đơn hàng chưa thanh toán!');
 //
-//         // 1. Tính tiền món + VAT cho từng đơn
 //         let customerId = null;
 //         let subTotalAll = 0;
 //         const bills = [];
@@ -374,7 +345,6 @@
 //         }
 //         if (subTotalAll === 0) throw badRequest('Bàn này không còn món nào cần thanh toán!');
 //
-//         // 2. Điểm thưởng: không vượt số điểm khách có, không vượt tổng tiền
 //         let pointsApplied = 0;
 //         if (customerId) {
 //             const [[cust]] = await connection.query(
@@ -386,13 +356,12 @@
 //         }
 //         let discountLeft = pointsApplied * POINT_VALUE;
 //
-//         // 3. Ghi thanh toán từng đơn, đóng đơn, trừ kho
 //         let totalPaid = 0;
 //         for (const b of bills) {
 //             const orderTotal = b.sub + b.vat;
 //             const discount = Math.min(discountLeft, orderTotal);
 //             discountLeft -= discount;
-//             const amountPaid = orderTotal - discount; // số khách thực trả cho đơn này
+//             const amountPaid = orderTotal - discount;
 //             totalPaid += amountPaid;
 //
 //             await connection.query('UPDATE orders SET order_status = "paid", total_amount = ? WHERE order_id = ?', [b.sub, b.orderId]);
@@ -415,7 +384,6 @@
 //
 //         await connection.query('UPDATE tables SET status = "available" WHERE table_id = ?', [table_id]);
 //
-//         // 4. Trừ điểm đã dùng, cộng điểm mới (tính trên tiền món)
 //         if (customerId) {
 //             const earned = Math.floor(subTotalAll / POINT_EARN_STEP);
 //             await connection.query(
@@ -435,7 +403,6 @@
 //     }
 // };
 //
-// // Hủy một món trên hóa đơn
 // exports.cancelOrderItem = async (req, res) => {
 //     const { orderItemId } = req.params;
 //     const connection = await db.getConnection();
@@ -462,7 +429,6 @@
 //             [orderId, orderId]
 //         );
 //
-//         // Hủy hết món của bàn -> đóng các đơn đang mở và trả bàn về trống
 //         const [[left]] = await connection.query(
 //             `SELECT COUNT(*) AS n
 //              FROM order_items oi
@@ -495,9 +461,7 @@
 //     }
 // };
 //
-// // ==========================================
 // // MODULE KHÁCH HÀNG & VOUCHER
-// // ==========================================
 // exports.registerCustomer = async (req, res) => {
 //     const { phone, full_name, password } = req.body;
 //     if (!phone || !full_name || !password) {
@@ -535,7 +499,6 @@
 //         if (customers.length === 0) return res.status(404).json({ error: 'Số điện thoại chưa đăng ký!' });
 //
 //         const customer = customers[0];
-//         // Khách tạo từ trước khi có cột password thì chưa có mật khẩu
 //         if (!customer.password) {
 //             return res.status(401).json({ error: 'Tài khoản này chưa có mật khẩu, vui lòng liên hệ quầy để được hỗ trợ!' });
 //         }
@@ -610,14 +573,93 @@
 //         res.status(500).json({ error: 'Lỗi cập nhật quảng cáo' });
 //     }
 // };
+//
+// // MODULE DASHBOARD (THỐNG KÊ)
+// exports.getDashboardStats = async (req, res) => {
+//     try {
+//         // 1. Tổng doanh thu (chỉ tính đơn đã thanh toán)
+//         const [revenue] = await db.query(
+//             'SELECT COALESCE(SUM(amount), 0) as total FROM payments'
+//         );
+//
+//         // 2. Tổng số đơn hàng
+//         const [orders] = await db.query('SELECT COUNT(*) as total FROM orders');
+//
+//         // 3. Tổng số khách hàng
+//         const [customers] = await db.query('SELECT COUNT(*) as total FROM customers');
+//
+//         // 4. Số món đang nấu (item_status = 'cooking')
+//         const [cooking] = await db.query(
+//             "SELECT COUNT(*) as total FROM order_items WHERE item_status = 'cooking'"
+//         );
+//
+//         // 5. 10 đơn hàng gần nhất
+//         const [recentOrders] = await db.query(`
+//             SELECT o.order_id, t.table_number, o.total_amount, o.order_status, o.created_at
+//             FROM orders o
+//             JOIN tables t ON o.table_id = t.table_id
+//             ORDER BY o.created_at DESC
+//             LIMIT 10
+//         `);
+//
+//         res.json({
+//             totalRevenue: Number(revenue[0].total),
+//             totalOrders: orders[0].total,
+//             totalCustomers: customers[0].total,
+//             cookingItems: cooking[0].total,
+//             recentOrders: recentOrders
+//         });
+//     } catch (error) {
+//         console.log("LỖI LẤY DASHBOARD STATS:", error);
+//         res.status(500).json({ message: 'Lỗi lấy thống kê', error: error.message });
+//     }
+// };
+//
+// // MODULE QUẢN LÝ ĐƠN HÀNG (DÀNH CHO THU NGÂN/PHỤC VỤ)
+// // Lấy tất cả đơn hàng đang hoạt động (chưa thanh toán, chưa hủy)
+// exports.getActiveOrders = async (req, res) => {
+//     try {
+//         const query = `
+//             SELECT o.order_id, t.table_number, o.total_amount, o.order_status, o.created_at
+//             FROM orders o
+//             JOIN tables t ON o.table_id = t.table_id
+//             WHERE o.order_status NOT IN ('paid', 'cancelled')
+//             ORDER BY o.created_at DESC
+//         `;
+//         const [rows] = await db.query(query);
+//         res.json(rows);
+//     } catch (error) {
+//         console.log("LỖI LẤY ĐƠN ACTIVE:", error);
+//         res.status(500).json({ error: 'Lỗi lấy danh sách đơn' });
+//     }
+// };
+//
+// // Lấy chi tiết 1 đơn hàng (để xem món nào đang nấu, món nào xong)
+// exports.getOrderDetail = async (req, res) => {
+//     const { orderId } = req.params;
+//     try {
+//         const [orderInfo] = await db.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
+//         if (orderInfo.length === 0) return res.status(404).json({ error: 'Không thấy đơn' });
+//
+//         const [items] = await db.query(`
+//             SELECT oi.*, m.name AS item_name
+//             FROM order_items oi
+//             JOIN menu_items m ON oi.item_id = m.item_id
+//             WHERE oi.order_id = ?
+//         `, [orderId]);
+//
+//         res.json({ order: orderInfo[0], items });
+//     } catch (error) {
+//         console.log("LỖI LẤY CHI TIẾT ĐƠN:", error);
+//         res.status(500).json({ error: 'Lỗi lấy chi tiết đơn' });
+//     }
+// };
 
 const db = require('../config/db');
 const { generateVietQRUrl } = require('../utils/vietqr');
 const bcrypt = require('bcrypt');
 
-// ==========================================
 // HẰNG SỐ & HÀM DÙNG CHUNG
-// ==========================================
 const POINT_VALUE = 10000;
 const POINT_EARN_STEP = 100000;
 const PAYMENT_METHODS = ['cash', 'vietqr'];
@@ -701,9 +743,7 @@ async function emitNewOrder(req, connection, { orderId, tableId, newItemIds, tot
     }
 }
 
-// ==========================================
 // 1. GỌI MÓN
-// ==========================================
 exports.createOrder = async (req, res) => {
     const { table_id, items } = req.body;
     const connection = await db.getConnection();
@@ -740,9 +780,7 @@ exports.createPublicOrder = async (req, res) => {
     }
 };
 
-// ==========================================
 // 2. MÃ QR THANH TOÁN
-// ==========================================
 exports.getPaymentQR = async (req, res) => {
     try {
         const [order] = await db.query('SELECT total_amount FROM orders WHERE order_id = ?', [req.params.orderId]);
@@ -755,9 +793,7 @@ exports.getPaymentQR = async (req, res) => {
     }
 };
 
-// ==========================================
 // 3. THỰC ĐƠN
-// ==========================================
 const MENU_QUERY = `
     SELECT m.*, c.category_name
     FROM menu_items m
@@ -785,9 +821,7 @@ exports.getPublicMenu = async (req, res) => {
     }
 };
 
-// ==========================================
 // MODULE KDS (BẾP)
-// ==========================================
 exports.getKitchenOrders = async (req, res) => {
     try {
         const query = `
@@ -827,9 +861,7 @@ exports.updateItemStatus = async (req, res) => {
     }
 };
 
-// ==========================================
 // MODULE THANH TOÁN CƠ BẢN
-// ==========================================
 exports.getTableBill = async (req, res) => {
     const { tableId } = req.params;
     try {
@@ -879,14 +911,12 @@ exports.checkoutTable = async (req, res) => {
     }
 };
 
-// ==========================================
 // MODULE THU NGÂN (BILLING)
-// ==========================================
 exports.getBillingTables = async (req, res) => {
     try {
         const query = `
             SELECT t.*,
-                   (SELECT SUM(oi.item_price * oi.quantity)
+                    (SELECT SUM(oi.item_price * oi.quantity)
                     FROM orders o
                     JOIN order_items oi ON o.order_id = oi.order_id
                     WHERE o.table_id = t.table_id
@@ -1088,9 +1118,7 @@ exports.cancelOrderItem = async (req, res) => {
     }
 };
 
-// ==========================================
 // MODULE KHÁCH HÀNG & VOUCHER
-// ==========================================
 exports.registerCustomer = async (req, res) => {
     const { phone, full_name, password } = req.body;
     if (!phone || !full_name || !password) {
@@ -1203,9 +1231,7 @@ exports.updateMarqueeText = async (req, res) => {
     }
 };
 
-// ==========================================
 // MODULE DASHBOARD (THỐNG KÊ)
-// ==========================================
 exports.getDashboardStats = async (req, res) => {
     try {
         // 1. Tổng doanh thu (chỉ tính đơn đã thanh toán)
@@ -1243,5 +1269,45 @@ exports.getDashboardStats = async (req, res) => {
     } catch (error) {
         console.log("LỖI LẤY DASHBOARD STATS:", error);
         res.status(500).json({ message: 'Lỗi lấy thống kê', error: error.message });
+    }
+};
+
+// MODULE QUẢN LÝ ĐƠN HÀNG (DÀNH CHO THU NGÂN/PHỤC VỤ)
+// Lấy tất cả đơn hàng đang hoạt động (chưa thanh toán, chưa hủy)
+exports.getActiveOrders = async (req, res) => {
+    try {
+        const query = `
+            SELECT o.order_id, t.table_number, o.total_amount, o.order_status, o.created_at
+            FROM orders o
+            JOIN tables t ON o.table_id = t.table_id
+            WHERE o.order_status NOT IN ('paid', 'cancelled')
+            ORDER BY o.created_at DESC
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.log("LỖI LẤY ĐƠN ACTIVE:", error);
+        res.status(500).json({ error: 'Lỗi lấy danh sách đơn' });
+    }
+};
+
+// Lấy chi tiết 1 đơn hàng (để xem món nào đang nấu, món nào xong)
+exports.getOrderDetail = async (req, res) => {
+    const { orderId } = req.params;
+    try {
+        const [orderInfo] = await db.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
+        if (orderInfo.length === 0) return res.status(404).json({ error: 'Không thấy đơn' });
+
+        const [items] = await db.query(`
+            SELECT oi.*, m.name AS item_name 
+            FROM order_items oi 
+            JOIN menu_items m ON oi.item_id = m.item_id 
+            WHERE oi.order_id = ?
+        `, [orderId]);
+
+        res.json({ order: orderInfo[0], items });
+    } catch (error) {
+        console.log("LỖI LẤY CHI TIẾT ĐƠN:", error);
+        res.status(500).json({ error: 'Lỗi lấy chi tiết đơn' });
     }
 };

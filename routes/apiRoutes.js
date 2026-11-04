@@ -7,6 +7,7 @@ const shiftController = require('../controllers/shiftController');
 const inventoryController = require('../controllers/inventoryController');
 const reportController = require('../controllers/reportController');
 const { verifyToken, checkRole } = require('../middlewares/authMiddleware');
+const reservationController = require('../controllers/reservationController');
 
 // ========== ĐĂNG NHẬP ==========
 router.post('/auth/login', authController.login);
@@ -79,5 +80,10 @@ router.get('/admin/purchase-orders/:poId', verifyToken, checkRole(['admin']), in
 // ==========================================
 router.get('/admin/reports/monthly', verifyToken, checkRole(['admin']), reportController.exportMonthlyReport);
 router.get('/admin/dashboard/stats', verifyToken, orderController.getDashboardStats);
-
+router.get('/orders/active', verifyToken, orderController.getActiveOrders);
+router.get('/orders/detail/:orderId', verifyToken, orderController.getOrderDetail);
 module.exports = router;
+// ========== ĐẶT BÀN TRƯỚC ==========
+router.post('/reservations', reservationController.createReservation); // Khách gọi không cần verifyToken
+router.get('/admin/reservations', verifyToken, reservationController.getAllReservations);
+router.put('/admin/reservations/:id/status', verifyToken, reservationController.updateReservationStatus);
